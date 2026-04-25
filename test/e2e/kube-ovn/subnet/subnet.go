@@ -1446,6 +1446,93 @@ var _ = framework.Describe("[group:subnet]", func() {
 			return false, nil
 		}, fmt.Sprintf("pod %s should have AddressConflict warning event", podName))
 	})
+
+	framework.ConformanceIt("should live re-IP pods when subnet cidrBlock changes and allowLiveReIP=true", func() {
+		f.SkipVersionPriorTo(1, 18, "live re-IP on subnet CIDR change is introduced in v1.18 (homelab fork)")
+
+		// Use a small disjoint v4 CIDR pair so the test stays simple regardless of dual-stack.
+		oldCIDR := "10.99.0.0/24"
+		newCIDR := "10.98.0.0/24"
+		oldGw := "10.99.0.1"
+		newGw := "10.98.0.1"
+
+		ginkgo.By("Creating subnet " + subnetName + " with allowLiveReIP=true")
+		subnet = framework.MakeSubnet(subnetName, "", oldCIDR, oldGw, "", "", nil, nil, []string{namespaceName})
+		subnet.Spec.AllowLiveReIP = true
+		subnet = subnetClient.CreateSync(subnet)
+
+		ginkgo.By("Creating pod " + podName + " on subnet")
+		pod := framework.MakePod(namespaceName, podName, nil, nil, f.KubeOVNImage, []string{"sleep", "infinity"}, nil)
+		pod = podClient.CreateSync(pod)
+		oldIP := pod.Annotations[util.IPAddressAnnotation]
+		framework.ExpectNotEmpty(oldIP)
+		framework.Logf("pod %s/%s started with IP %s", namespaceName, podName, oldIP)
+
+		ginkgo.By("Patching subnet cidrBlock to a disjoint range")
+		modified := subnet.DeepCopy()
+		modified.Spec.CIDRBlock = newCIDR
+		modified.Spec.Gateway = newGw
+		modified.Spec.ExcludeIps = []string{newGw}
+		subnet = subnetClient.PatchSync(subnet, modified)
+
+		ginkgo.By("Waiting for pod to receive a new IP from " + newCIDR)
+		framework.WaitUntil(500*time.Millisecond, 60*time.Second, func(ctx context.Context) (bool, error) {
+			p, err := podClient.Get(ctx, podName, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			newIP := p.Annotations[util.IPAddressAnnotation]
+			if newIP == oldIP || newIP == "" {
+				return false, nil
+			}
+			_, ipnet, err := net.ParseCIDR(newCIDR)
+			if err != nil {
+				return false, err
+			}
+			ip := net.ParseIP(newIP)
+			if ip == nil || !ipnet.Contains(ip) {
+				return false, nil
+			}
+			pod = p
+			return true, nil
+		}, fmt.Sprintf("pod %s/%s should be re-IP'd into %s", namespaceName, podName, newCIDR))
+
+		ginkgo.By("Verifying pod was not restarted (process identity preserved)")
+		framework.ExpectEqual(pod.Status.ContainerStatuses[0].RestartCount, int32(0))
+	})
+
+	framework.ConformanceIt("should mark pods for eviction when cidrBlock changes and allowLiveReIP=false", func() {
+		f.SkipVersionPriorTo(1, 18, "needs-reip-eviction annotation is introduced in v1.18 (homelab fork)")
+
+		oldCIDR := "10.97.0.0/24"
+		newCIDR := "10.96.0.0/24"
+
+		ginkgo.By("Creating subnet " + subnetName + " (allowLiveReIP defaults to false)")
+		subnet = framework.MakeSubnet(subnetName, "", oldCIDR, "10.97.0.1", "", "", nil, nil, []string{namespaceName})
+		subnet = subnetClient.CreateSync(subnet)
+
+		ginkgo.By("Creating pod " + podName)
+		pod := framework.MakePod(namespaceName, podName, nil, nil, f.KubeOVNImage, []string{"sleep", "infinity"}, nil)
+		pod = podClient.CreateSync(pod)
+		oldIP := pod.Annotations[util.IPAddressAnnotation]
+		framework.ExpectNotEmpty(oldIP)
+
+		ginkgo.By("Patching subnet cidrBlock to a disjoint range")
+		modified := subnet.DeepCopy()
+		modified.Spec.CIDRBlock = newCIDR
+		modified.Spec.Gateway = "10.96.0.1"
+		modified.Spec.ExcludeIps = []string{"10.96.0.1"}
+		_ = subnetClient.PatchSync(subnet, modified)
+
+		ginkgo.By("Waiting for needs-reip-eviction annotation on pod")
+		framework.WaitUntil(500*time.Millisecond, 60*time.Second, func(ctx context.Context) (bool, error) {
+			p, err := podClient.Get(ctx, podName, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			return p.Annotations[util.NeedsReIPEvictionAnnotation] == "true", nil
+		}, fmt.Sprintf("pod %s/%s should be annotated for eviction", namespaceName, podName))
+	})
 })
 
 func checkNatPolicyIPsets(f *framework.Framework, cs clientset.Interface, subnet *apiv1.Subnet, cidrV4, cidrV6 string, shouldExist bool) {

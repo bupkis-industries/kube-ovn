@@ -151,6 +151,13 @@ type SubnetSpec struct {
 	NamespaceSelectors []metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
 	// Node network name for underlay.
 	NodeNetwork string `json:"nodeNetwork,omitempty"`
+
+	// AllowLiveReIP, when true, allows kube-ovn to re-IP existing pods on this
+	// subnet in place when the cidrBlock changes such that current pod IPs fall
+	// outside the new range. Pods retain their process identity; in-flight TCP
+	// connections on the old IP do not survive. Default false (matches the
+	// upstream/Cilium-style "pod IP is immutable" posture).
+	AllowLiveReIP bool `json:"allowLiveReIP,omitempty"`
 }
 
 type ACL struct {

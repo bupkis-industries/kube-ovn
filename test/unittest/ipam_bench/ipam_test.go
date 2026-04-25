@@ -178,7 +178,7 @@ func delSubnetCapacity(b *testing.B, im *ipam.IPAM) {
 
 func addSerialAddrCapacity(b *testing.B, im *ipam.IPAM, protocol string) {
 	subnetName, cidr, gw, excludeIPs := getDefaultSubnetParam(protocol)
-	if err := im.AddOrUpdateSubnet(subnetName, cidr, gw, excludeIPs); err != nil {
+	if _, err := im.AddOrUpdateSubnet(subnetName, cidr, gw, excludeIPs); err != nil {
 		b.Errorf("ERROR: add subnet with %s cidr %s err %v", protocol, cidr, err)
 		return
 	}
@@ -195,7 +195,7 @@ func addSerialAddrCapacity(b *testing.B, im *ipam.IPAM, protocol string) {
 
 func addRandomAddrCapacity(b *testing.B, im *ipam.IPAM, protocol string, isTimeTrace bool) {
 	subnetName, cidr, gw, excludeIPs := getDefaultSubnetParam(protocol)
-	if err := im.AddOrUpdateSubnet(subnetName, cidr, gw, excludeIPs); err != nil {
+	if _, err := im.AddOrUpdateSubnet(subnetName, cidr, gw, excludeIPs); err != nil {
 		b.Errorf("ERROR: add subnet with %s cidr %s err %v", protocol, cidr, err)
 		return
 	}
@@ -257,17 +257,17 @@ func addIPAMSubnet(b *testing.B, im *ipam.IPAM, index int, protocol string) bool
 
 	switch protocol {
 	case kubeovnv1.ProtocolIPv4:
-		if err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs); err != nil {
+		if _, err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs); err != nil {
 			b.Errorf("ERROR: add subnet with ipv4 cidr %s, with index %d err %v", ipv4CIDR, index, err)
 			return false
 		}
 	case kubeovnv1.ProtocolIPv6:
-		if err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs); err != nil {
+		if _, err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs); err != nil {
 			b.Errorf("ERROR: add subnet with ipv6 cidr %s, with index %d err %v", ipv6CIDR, index, err)
 			return false
 		}
 	case kubeovnv1.ProtocolDual:
-		if err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs); err != nil {
+		if _, err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs); err != nil {
 			b.Errorf("ERROR: add subnet with dual cidr %s, with index %d err %v", dualCIDR, index, err)
 			return false
 		}
@@ -300,7 +300,7 @@ func benchmarkAddDelSubnetParallel(b *testing.B, subnetNumber int, protocol stri
 func benchmarkAllocFreeAddrParallel(b *testing.B, podNumber int, protocol string) {
 	im := ipam.NewIPAM()
 	subnetName, CIDR, Gw, ExcludeIPs := getDefaultSubnetParam(protocol)
-	if err := im.AddOrUpdateSubnet(subnetName, CIDR, Gw, ExcludeIPs); err != nil {
+	if _, err := im.AddOrUpdateSubnet(subnetName, CIDR, Gw, ExcludeIPs); err != nil {
 		b.Errorf("ERROR: add subnet with %s cidr %s: %v", protocol, CIDR, err)
 		return
 	}

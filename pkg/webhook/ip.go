@@ -61,18 +61,29 @@ func (v *ValidatingHook) IPUpdateHook(ctx context.Context, req admission.Request
 		err := fmt.Errorf("ip %s podType can not change", ipNew.Name)
 		return ctrlwebhook.Errored(http.StatusBadRequest, err)
 	}
-	if ipOld.Spec.V4IPAddress != "" && ipNew.Spec.V4IPAddress != ipOld.Spec.V4IPAddress {
-		err := fmt.Errorf("ip %s v4IPAddress can not change", ipNew.Name)
-		return ctrlwebhook.Errored(http.StatusBadRequest, err)
-	}
-
-	if ipOld.Spec.V6IPAddress != "" && ipNew.Spec.V6IPAddress != ipOld.Spec.V6IPAddress {
-		err := fmt.Errorf("ip %s v6IPAddress can not change", ipNew.Name)
-		return ctrlwebhook.Errored(http.StatusBadRequest, err)
-	}
-	if ipOld.Spec.MacAddress != "" && ipNew.Spec.MacAddress != ipOld.Spec.MacAddress {
-		err := fmt.Errorf("ip %s macAddress can not change", ipNew.Name)
-		return ctrlwebhook.Errored(http.StatusBadRequest, err)
+	// v4/v6 address mutation is normally rejected. The owning subnet may opt
+	// in to live re-IP via Subnet.spec.allowLiveReIP, in which case an address
+	// change is permitted as long as ValidateIP confirms the new address is in
+	// the subnet's current CIDR. The MAC may also change when the subnet
+	// reissues a fresh MAC alongside the new IP.
+	v4Changed := ipOld.Spec.V4IPAddress != "" && ipNew.Spec.V4IPAddress != ipOld.Spec.V4IPAddress
+	v6Changed := ipOld.Spec.V6IPAddress != "" && ipNew.Spec.V6IPAddress != ipOld.Spec.V6IPAddress
+	macChanged := ipOld.Spec.MacAddress != "" && ipNew.Spec.MacAddress != ipOld.Spec.MacAddress
+	if v4Changed || v6Changed || macChanged {
+		subnet := &ovnv1.Subnet{}
+		if err := v.cache.Get(ctx, client.ObjectKey{Name: ipNew.Spec.Subnet}, subnet); err != nil {
+			return ctrlwebhook.Errored(http.StatusBadRequest, err)
+		}
+		if !subnet.Spec.AllowLiveReIP {
+			switch {
+			case v4Changed:
+				return ctrlwebhook.Errored(http.StatusBadRequest, fmt.Errorf("ip %s v4IPAddress can not change (set subnet.spec.allowLiveReIP=true to permit)", ipNew.Name))
+			case v6Changed:
+				return ctrlwebhook.Errored(http.StatusBadRequest, fmt.Errorf("ip %s v6IPAddress can not change (set subnet.spec.allowLiveReIP=true to permit)", ipNew.Name))
+			case macChanged:
+				return ctrlwebhook.Errored(http.StatusBadRequest, fmt.Errorf("ip %s macAddress can not change (set subnet.spec.allowLiveReIP=true to permit)", ipNew.Name))
+			}
+		}
 	}
 	return ctrlwebhook.Allowed("bypass")
 }

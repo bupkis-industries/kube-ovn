@@ -550,9 +550,16 @@ func (c *Controller) handleAddOrUpdateSubnet(key string) error {
 		return err
 	}
 
-	if err := c.ipam.AddOrUpdateSubnet(subnet.Name, subnet.Spec.CIDRBlock, subnet.Spec.Gateway, subnet.Spec.ExcludeIps); err != nil {
+	reIPCandidates, err := c.ipam.AddOrUpdateSubnet(subnet.Name, subnet.Spec.CIDRBlock, subnet.Spec.Gateway, subnet.Spec.ExcludeIps)
+	if err != nil {
 		klog.Error(err)
 		return err
+	}
+	if len(reIPCandidates) > 0 {
+		if err := c.handleSubnetReIPCandidates(subnet, reIPCandidates); err != nil {
+			klog.Errorf("failed to re-IP pods on subnet %s: %v", subnet.Name, err)
+			return err
+		}
 	}
 
 	// availableIPStr valued from ipam, so leave update subnet.status after ipam process

@@ -57,6 +57,10 @@ type Controller struct {
 	ovnEipsLister kubeovnlister.OvnEipLister
 	ovnEipsSynced cache.InformerSynced
 
+	ipsLister kubeovnlister.IPLister
+	ipsSynced cache.InformerSynced
+	reIPQueue workqueue.TypedRateLimitingInterface[string]
+
 	podsLister     listerv1.PodLister
 	podsSynced     cache.InformerSynced
 	updatePodQueue workqueue.TypedRateLimitingInterface[string]
@@ -110,6 +114,7 @@ func NewController(config *Configuration,
 	vlanInformer := kubeovnInformerFactory.Kubeovn().V1().Vlans()
 	subnetInformer := kubeovnInformerFactory.Kubeovn().V1().Subnets()
 	ovnEipInformer := kubeovnInformerFactory.Kubeovn().V1().OvnEips()
+	ipInformer := kubeovnInformerFactory.Kubeovn().V1().IPs()
 	podInformer := podInformerFactory.Core().V1().Pods()
 	nodeInformer := nodeInformerFactory.Core().V1().Nodes()
 	servicesInformer := nodeInformerFactory.Core().V1().Services()
@@ -132,6 +137,10 @@ func NewController(config *Configuration,
 
 		ovnEipsLister: ovnEipInformer.Lister(),
 		ovnEipsSynced: ovnEipInformer.Informer().HasSynced,
+
+		ipsLister: ipInformer.Lister(),
+		ipsSynced: ipInformer.Informer().HasSynced,
+		reIPQueue: newTypedRateLimitingQueue[string]("PodReIP", nil),
 
 		podsLister:     podInformer.Lister(),
 		podsSynced:     podInformer.Informer().HasSynced,
@@ -172,7 +181,8 @@ func NewController(config *Configuration,
 
 	if !cache.WaitForCacheSync(stopCh,
 		controller.providerNetworksSynced, controller.vlansSynced, controller.subnetsSynced,
-		controller.podsSynced, controller.nodesSynced, controller.servicesSynced, controller.caSecretSynced) {
+		controller.podsSynced, controller.nodesSynced, controller.servicesSynced, controller.caSecretSynced,
+		controller.ipsSynced) {
 		util.LogFatalAndExit(nil, "failed to wait for caches to sync")
 	}
 
@@ -216,6 +226,12 @@ func NewController(config *Configuration,
 	}
 	if _, err = nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: controller.enqueueUpdateNode,
+	}); err != nil {
+		return nil, err
+	}
+
+	if _, err = ipInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		UpdateFunc: controller.enqueueUpdateIPForReIP,
 	}); err != nil {
 		return nil, err
 	}
@@ -948,6 +964,7 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 	defer c.updatePodQueue.ShutDown()
 	defer c.ipsecQueue.ShutDown()
 	defer c.updateNodeQueue.ShutDown()
+	defer c.reIPQueue.ShutDown()
 	defer c.vswitchClient.Close()
 
 	go wait.Until(c.gcInterfaces, time.Minute, stopCh)
@@ -968,6 +985,7 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 	go wait.Until(c.runSubnetWorker, time.Second, stopCh)
 	go wait.Until(c.runUpdatePodWorker, time.Second, stopCh)
 	go wait.Until(c.runUpdateNodeWorker, time.Second, stopCh)
+	go wait.Until(c.runReIPWorker, time.Second, stopCh)
 	go wait.Until(c.runIPSecWorker, 3*time.Second, stopCh)
 	go wait.Until(c.runGateway, 3*time.Second, stopCh)
 	go wait.Until(c.loopEncapIPCheck, 3*time.Second, stopCh)
