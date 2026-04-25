@@ -16,13 +16,17 @@ const (
 	DeprecatedFinalizerName    = "kube-ovn-controller"
 	KubeOVNControllerFinalizer = "kubeovn.io/kube-ovn-controller"
 
-	AllocatedAnnotation          = "ovn.kubernetes.io/allocated"
-	RoutedAnnotation             = "ovn.kubernetes.io/routed"
-	RoutesAnnotation             = "ovn.kubernetes.io/routes"
-	MacAddressAnnotation         = "ovn.kubernetes.io/mac_address"
-	IPAddressAnnotation          = "ovn.kubernetes.io/ip_address"
-	CidrAnnotation               = "ovn.kubernetes.io/cidr"
-	GatewayAnnotation            = "ovn.kubernetes.io/gateway"
+	AllocatedAnnotation  = "ovn.kubernetes.io/allocated"
+	RoutedAnnotation     = "ovn.kubernetes.io/routed"
+	RoutesAnnotation     = "ovn.kubernetes.io/routes"
+	MacAddressAnnotation = "ovn.kubernetes.io/mac_address"
+	IPAddressAnnotation  = "ovn.kubernetes.io/ip_address"
+	CidrAnnotation       = "ovn.kubernetes.io/cidr"
+	GatewayAnnotation    = "ovn.kubernetes.io/gateway"
+	// NeedsReIPEvictionAnnotation is set on a pod whose IP fell outside its
+	// subnet's new cidrBlock and whose subnet has allowLiveReIP=false. The
+	// pod retains its stale IP and is unreachable until evicted/recreated.
+	NeedsReIPEvictionAnnotation  = "ovn.kubernetes.io/needs-reip-eviction"
 	IPPoolAnnotation             = "ovn.kubernetes.io/ip_pool"
 	BgpAnnotation                = "ovn.kubernetes.io/bgp"
 	SnatAnnotation               = "ovn.kubernetes.io/snat"
