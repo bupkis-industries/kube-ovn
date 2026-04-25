@@ -4,6 +4,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
 )
 
@@ -113,6 +114,43 @@ func TestValidateRequiredFlags(t *testing.T) {
 				}
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestLocalAddressFlag(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want net.IP
+	}{
+		{
+			name: "unset defaults to nil",
+			args: []string{},
+			want: nil,
+		},
+		{
+			name: "IPv4 source address",
+			args: []string{"--local-address=10.0.0.1"},
+			want: net.ParseIP("10.0.0.1"),
+		},
+		{
+			name: "IPv6 ULA source address",
+			args: []string{"--local-address=fd0f:6160:5113::1"},
+			want: net.ParseIP("fd0f:6160:5113::1"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+			got := fs.IP("local-address", nil, "")
+			require.NoError(t, fs.Parse(tt.args))
+			if tt.want == nil {
+				require.Nil(t, *got)
+			} else {
+				require.True(t, tt.want.Equal(*got), "expected %s, got %s", tt.want, *got)
 			}
 		})
 	}

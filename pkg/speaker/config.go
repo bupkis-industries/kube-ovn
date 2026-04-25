@@ -42,6 +42,7 @@ type Configuration struct {
 	GrpcPort                    int32
 	ClusterAs                   uint32
 	RouterID                    net.IP
+	LocalAddress                net.IP
 	PodIPs                      map[string]net.IP
 	NodeIPs                     map[string]net.IP
 	NeighborAddresses           []net.IP
@@ -79,6 +80,7 @@ func ParseFlags() (*Configuration, error) {
 		argGrpcPort                    = pflag.Int32("grpc-port", DefaultBGPGrpcPort, "The port for grpc to listen, default:50051")
 		argClusterAs                   = pflag.Uint32("cluster-as", 0, "The AS number of the local BGP speaker (required)")
 		argRouterID                    = pflag.IP("router-id", nil, "The address for the speaker to use as router id, default the node ip")
+		argLocalAddress                = pflag.IP("local-address", nil, "Source IPv4/IPv6 address for the BGP TCP session (optional; defaults to kernel selection).")
 		argNodeIPs                     = pflag.IPSlice("node-ips", nil, "The comma-separated list of node IP addresses to use instead of the pod IP address for the next hop router IP address.")
 		argNeighborAddress             = pflag.IPSlice("neighbor-address", nil, "Comma separated IPv4 router addresses the speaker connects to.")
 		argNeighborIPv6Address         = pflag.IPSlice("neighbor-ipv6-address", nil, "Comma separated IPv6 router addresses the speaker connects to.")
@@ -142,6 +144,7 @@ func ParseFlags() (*Configuration, error) {
 		GrpcPort:              *argGrpcPort,
 		ClusterAs:             *argClusterAs,
 		RouterID:              *argRouterID,
+		LocalAddress:          *argLocalAddress,
 		NeighborAddresses:     *argNeighborAddress,
 		NeighborIPv6Addresses: *argNeighborIPv6Address,
 		NodeIPs: map[string]net.IP{
@@ -351,6 +354,9 @@ func (config *Configuration) initBgpServer() error {
 				Transport: &api.Transport{
 					PassiveMode: config.PassiveMode,
 				},
+			}
+			if config.LocalAddress != nil {
+				peer.Transport.LocalAddress = config.LocalAddress.String()
 			}
 			if config.EbgpMultihopTTL != DefaultEbgpMultiHop {
 				peer.EbgpMultihop = &api.EbgpMultihop{
