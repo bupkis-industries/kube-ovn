@@ -44,19 +44,19 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 				ginkgo.By("invalid mask len > 32")
 				maskV4Length := rand.Int() + 32
-				err := im.AddOrUpdateSubnet(subnetName, fmt.Sprintf("1.1.1.1/%d", maskV4Length), v4Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, fmt.Sprintf("1.1.1.1/%d", maskV4Length), v4Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 
 				ginkgo.By("invalid ip range")
 				invalidV4Ip := fmt.Sprintf("1.1.%d.1/24", rand.Int()+256)
-				err = im.AddOrUpdateSubnet(subnetName, invalidV4Ip, v4Gw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, invalidV4Ip, v4Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 			})
 
 			ginkgo.It("normal subnet", func() {
 				ginkgo.By("create pod with static ip")
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(im.GetSubnetV4Mask(subnetName)).To(gomega.Equal(strings.Split(ipv4CIDR, "/")[1]))
 				gomega.Expect(im.Subnets[subnetName].V4Gw).To(gomega.Equal(v4Gw))
@@ -142,24 +142,24 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("change cidr", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, ipv4CIDR, v4Gw, ipv4ExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = im.AddOrUpdateSubnet(subnetName, "10.17.0.0/16", v4Gw, []string{"10.17.0.1"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "10.17.0.0/16", v4Gw, []string{"10.17.0.1"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				ip, _, _, err := im.GetRandomAddress("pod5.ns", "pod5.ns", nil, subnetName, "", nil, true)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(ip).To(gomega.Equal("10.17.0.2"))
 
 				ginkgo.By("update invalid cidr, subnet should not change")
-				err = im.AddOrUpdateSubnet(subnetName, "1.1.256.1", v4Gw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, "1.1.256.1", v4Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 				gomega.Expect(im.Subnets[subnetName].V4CIDR.IP.String()).To(gomega.Equal("10.17.0.0"))
 			})
 
 			ginkgo.It("reuse released address when no unused address", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				ip, _, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -179,7 +179,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("do not reuse released address after update subnet's excludedIps", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				ip, _, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -187,7 +187,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 				gomega.Expect(ip).To(gomega.Equal("10.16.0.1"))
 
 				im.ReleaseAddressByPod("pod1.ns", "")
-				err = im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, []string{"10.16.0.1..10.16.0.2"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "10.16.0.0/30", v4Gw, []string{"10.16.0.1..10.16.0.2"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				_, _, _, err = im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -196,7 +196,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("do not count excludedIps as subnet's v4availableIPs and v4usingIPs", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "10.16.10.0/28", "10.16.10.1", []string{"10.16.10.1", "10.16.10.10"})
+				_, err := im.AddOrUpdateSubnet(subnetName, "10.16.10.0/28", "10.16.10.1", []string{"10.16.10.1", "10.16.10.10"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				ip, _, _, err := im.GetStaticAddress("pod1.ns", "pod1.ns", "10.16.10.10", nil, subnetName, true)
@@ -207,7 +207,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 				gomega.Expect(v4UsingIPStr).To(gomega.Equal(""))
 				gomega.Expect(v4AvailableIPStr).To(gomega.Equal("10.16.10.2-10.16.10.9,10.16.10.11-10.16.10.14"))
 
-				err = im.AddOrUpdateSubnet(subnetName, "10.16.10.0/28", "10.16.10.1", []string{"10.16.10.1"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "10.16.10.0/28", "10.16.10.1", []string{"10.16.10.1"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				v4UsingIPStr, _, v4AvailableIPStr, _ = im.GetSubnetIPRangeString(subnetName, nil)
 				gomega.Expect(v4UsingIPStr).To(gomega.Equal("10.16.10.10"))
@@ -221,18 +221,18 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 				maskV6Length := rand.Int() + 128
 				ginkgo.By("invalid mask len > 128")
-				err := im.AddOrUpdateSubnet(subnetName, fmt.Sprintf("fd00::/%d", maskV6Length), v6Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, fmt.Sprintf("fd00::/%d", maskV6Length), v6Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 
 				ginkgo.By("invalid ip range")
-				err = im.AddOrUpdateSubnet(subnetName, "fd00::g/120", v6Gw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, "fd00::g/120", v6Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 			})
 
 			ginkgo.It("normal subnet", func() {
 				ginkgo.By("create pod with static ip")
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(im.Subnets[subnetName].V6Gw).To(gomega.Equal(v6Gw))
 
@@ -317,24 +317,24 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("change cidr", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, ipv6CIDR, v6Gw, ipv6ExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = im.AddOrUpdateSubnet(subnetName, "fe00::/112", v6Gw, []string{"fe00::1"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "fe00::/112", v6Gw, []string{"fe00::1"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				_, ip, _, err := im.GetRandomAddress("pod5.ns", "pod5.ns", nil, subnetName, "", nil, true)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(ip).To(gomega.Equal("fe00::2"))
 
 				ginkgo.By("update invalid cidr, subnet should not change")
-				err = im.AddOrUpdateSubnet(subnetName, "fd00::g/120", v6Gw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, "fd00::g/120", v6Gw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 				gomega.Expect(im.Subnets[subnetName].V6CIDR.IP.String()).To(gomega.Equal("fe00::"))
 			})
 
 			ginkgo.It("reuse released address when no unused address", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				_, ip, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -354,7 +354,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("do not reuse released address after update subnet's excludedIps", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				_, ip, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -362,7 +362,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 				gomega.Expect(ip).To(gomega.Equal("fd00::1"))
 
 				im.ReleaseAddressByPod("pod1.ns", "")
-				err = im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, []string{"fd00::1..fd00::2"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "fd00::/126", v6Gw, []string{"fd00::1..fd00::2"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				_, _, _, err = im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -373,20 +373,20 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 		ginkgo.Context("[DualStack]", func() {
 			ginkgo.It("invalid subnet", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "1.1.1.1/64,"+ipv6CIDR, dualGw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "1.1.1.1/64,"+ipv6CIDR, dualGw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
-				err = im.AddOrUpdateSubnet(subnetName, "1.1.256.1/24,"+ipv6CIDR, dualGw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, "1.1.256.1/24,"+ipv6CIDR, dualGw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
-				err = im.AddOrUpdateSubnet(subnetName, ipv4CIDR+",fd00::/130", dualGw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, ipv4CIDR+",fd00::/130", dualGw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
-				err = im.AddOrUpdateSubnet(subnetName, ipv4CIDR+",fd00::g/120", dualGw, nil)
+				_, err = im.AddOrUpdateSubnet(subnetName, ipv4CIDR+",fd00::g/120", dualGw, nil)
 				gomega.Expect(err).Should(gomega.MatchError(ipam.ErrInvalidCIDR))
 			})
 
 			ginkgo.It("normal subnet", func() {
 				ginkgo.By("create pod with static ip")
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(im.Subnets[subnetName].V6Gw).To(gomega.Equal(v6Gw))
 				gomega.Expect(im.Subnets[subnetName].V4Gw).To(gomega.Equal(v4Gw))
@@ -503,10 +503,10 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("change cidr", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs)
+				_, err := im.AddOrUpdateSubnet(subnetName, dualCIDR, dualGw, dualExcludeIPs)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = im.AddOrUpdateSubnet(subnetName, "10.17.0.2/16,fe00::/112", dualGw, []string{"10.17.0.1", "fe00::1"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "10.17.0.2/16,fe00::/112", dualGw, []string{"10.17.0.1", "fe00::1"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				ipv4, ipv6, _, err := im.GetRandomAddress("pod5.ns", "pod5.ns", nil, subnetName, "", nil, true)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -516,7 +516,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("reuse released address when no unused address", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				ipv4, ipv6, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -539,7 +539,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 
 			ginkgo.It("do not reuse released address after update subnet's excludedIps", func() {
 				im := ipam.NewIPAM()
-				err := im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, nil)
+				_, err := im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, nil)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				ipv4, ipv6, _, err := im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)
@@ -548,7 +548,7 @@ var _ = ginkgo.Describe("[IPAM]", func() {
 				gomega.Expect(ipv6).To(gomega.Equal("fd00::1"))
 
 				im.ReleaseAddressByPod("pod1.ns", "")
-				err = im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, []string{"10.16.0.1..10.16.0.2", "fd00::1..fd00::2"})
+				_, err = im.AddOrUpdateSubnet(subnetName, "10.16.0.2/30,fd00::/126", dualGw, []string{"10.16.0.1..10.16.0.2", "fd00::1..fd00::2"})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				_, _, _, err = im.GetRandomAddress("pod1.ns", "pod1.ns", nil, subnetName, "", nil, true)

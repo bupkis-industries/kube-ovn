@@ -34,6 +34,17 @@ type SubnetAddress struct {
 	Mac    string
 }
 
+// ReIPCandidate identifies a pod whose previously-assigned IP fell outside a
+// new CIDR after AddOrUpdateSubnet. The controller decides whether to allocate
+// a replacement (Subnet.spec.allowLiveReIP) or evict the pod.
+type ReIPCandidate struct {
+	NicName string
+	PodKey  string
+	OldV4   string
+	OldV6   string
+	Mac     string
+}
+
 func NewIPAM() *IPAM {
 	return &IPAM{
 		mutex:   sync.RWMutex{},
@@ -177,11 +188,32 @@ func (ipam *IPAM) ReleaseAddressByNic(podName, nicName, subnetName string) {
 	}
 }
 
-func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []string) error {
+func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []string) ([]ReIPCandidate, error) {
 	excludeIps = util.ExpandExcludeIPs(excludeIps, cidrStr)
 
 	ipam.mutex.Lock()
 	defer ipam.mutex.Unlock()
+
+	// Indexed by (nicName, podKey) so dual-stack candidates merge into one entry.
+	type cKey struct{ nic, pod string }
+	candIdx := map[cKey]*ReIPCandidate{}
+	addCandidate := func(nicName, podKey, oldV4, oldV6, mac string) {
+		k := cKey{nicName, podKey}
+		c, ok := candIdx[k]
+		if !ok {
+			c = &ReIPCandidate{NicName: nicName, PodKey: podKey, Mac: mac}
+			candIdx[k] = c
+		}
+		if oldV4 != "" {
+			c.OldV4 = oldV4
+		}
+		if oldV6 != "" {
+			c.OldV6 = oldV6
+		}
+		if c.Mac == "" {
+			c.Mac = mac
+		}
+	}
 
 	var v4cidrStr, v6cidrStr, v4Gw, v6Gw string
 	var cidrs []*net.IPNet
@@ -189,7 +221,7 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 		_, cidr, err := net.ParseCIDR(cidrBlock)
 		if err != nil {
 			klog.Errorf("subnet %s invalid cidr %s: %s", name, cidrStr, err)
-			return ErrInvalidCIDR
+			return nil, ErrInvalidCIDR
 		}
 		cidrs = append(cidrs, cidr)
 	}
@@ -205,7 +237,7 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 		} else {
 			err := fmt.Errorf("dual subnet %s invalid gw %s", name, gw)
 			klog.Error(err)
-			return err
+			return nil, err
 		}
 	case kubeovnv1.ProtocolIPv4:
 		v4cidrStr = cidrs[0].String()
@@ -215,7 +247,7 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 		v6Gw = gw
 	case "":
 		klog.Errorf("subnet %s invalid cidr %s", name, cidrStr)
-		return ErrInvalidCIDR
+		return nil, ErrInvalidCIDR
 	}
 
 	// subnet.Spec.ExcludeIps contains both v4 and v6 addresses
@@ -226,12 +258,12 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 		v4Reserved, err := NewIPRangeListFrom(v4ExcludeIps...)
 		if err != nil {
 			klog.Errorf("failed to parse v4 exclude ips %v", v4ExcludeIps)
-			return err
+			return nil, err
 		}
 		v6Reserved, err := NewIPRangeListFrom(v6ExcludeIps...)
 		if err != nil {
 			klog.Errorf("failed to parse v6 exclude ips %v", v6ExcludeIps)
-			return err
+			return nil, err
 		}
 		if (protocol == kubeovnv1.ProtocolDual || protocol == kubeovnv1.ProtocolIPv4) &&
 			(subnet.V4CIDR.String() != v4cidrStr || subnet.V4Gw != v4Gw || !subnet.V4Reserved.Equal(v4Reserved)) {
@@ -271,6 +303,7 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 				if !ips.Contains(ip) {
 					podName := subnet.V4IPToPod[ip.String()]
 					klog.Errorf("%s address %s not in subnet %s new cidr %s", podName, ip, name, cidrStr)
+					addCandidate(nicName, podName, ip.String(), "", subnet.NicToMac[nicName])
 					delete(subnet.V4NicToIP, nicName)
 					delete(subnet.V4IPToPod, ip.String())
 				}
@@ -318,6 +351,7 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 				if !ips.Contains(ip) {
 					podName := subnet.V6IPToPod[ip.String()]
 					klog.Errorf("%s address %s not in subnet %s new cidr %s", podName, ip, name, cidrStr)
+					addCandidate(nicName, podName, "", ip.String(), subnet.NicToMac[nicName])
 					delete(subnet.V6NicToIP, nicName)
 					delete(subnet.V6IPToPod, ip.String())
 				}
@@ -328,25 +362,40 @@ func (ipam *IPAM) AddOrUpdateSubnet(name, cidrStr, gw string, excludeIps []strin
 			}
 		}
 
+		// For dual-stack subnets, do not delete NicToMac/MacToPod entries that
+		// have a candidate awaiting re-IP — the controller still needs the MAC.
+		// Only delete entries where both v4 and v6 are gone *and* the nic is
+		// not in the candidate set.
+		nicHasCandidate := make(map[string]bool, len(candIdx))
+		for k := range candIdx {
+			nicHasCandidate[k.nic] = true
+		}
 		for nicName, mac := range subnet.NicToMac {
 			if subnet.V4NicToIP[nicName] == nil && subnet.V6NicToIP[nicName] == nil {
+				if nicHasCandidate[nicName] {
+					continue
+				}
 				delete(subnet.NicToMac, nicName)
 				delete(subnet.MacToPod, mac)
 			}
 		}
-		return nil
+		candidates := make([]ReIPCandidate, 0, len(candIdx))
+		for _, c := range candIdx {
+			candidates = append(candidates, *c)
+		}
+		return candidates, nil
 	}
 
 	subnet, err := NewSubnet(name, cidrStr, excludeIps)
 	if err != nil {
 		klog.Errorf("failed to create subnet %s, %v", name, err)
-		return err
+		return nil, err
 	}
 	subnet.V4Gw = v4Gw
 	subnet.V6Gw = v6Gw
 	klog.Infof("adding new subnet %s", name)
 	ipam.Subnets[name] = subnet
-	return nil
+	return nil, nil
 }
 
 func (ipam *IPAM) DeleteSubnet(subnetName string) {

@@ -645,19 +645,19 @@ func TestIPAMAddOrUpdateSubnet(t *testing.T) {
 	v4SubnetName := "v4Subnet"
 	ipv4CIDR := "10.0.0.0/24"
 	v4Gw := "10.0.0.1"
-	err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	// test valid empty exclude ips
 	v4ExcludeIps = []string{}
-	err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	// test valid empty gw
 	v4Gw = ""
-	err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	// test invalid ipv4 cidr
 	ipv4CIDR = "10.0.0./24"
-	err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.Equal(t, err, ErrInvalidCIDR)
 
 	// test v6 subnet
@@ -668,22 +668,22 @@ func TestIPAMAddOrUpdateSubnet(t *testing.T) {
 	v6SubnetName := "v6Subnet"
 	ipv6CIDR := "2001:db8::/64"
 	v6Gw := "2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 
 	// test valid empty exclude ips
 	v6ExcludeIps = []string{}
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 
 	// test valid empty gw
 	v6Gw = ""
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 
 	// test invalid ipv6 cidr
 	ipv6CIDR = "2001:g6::/64"
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.Equal(t, err, ErrInvalidCIDR)
 
 	// test dual stack subnet
@@ -696,30 +696,30 @@ func TestIPAMAddOrUpdateSubnet(t *testing.T) {
 	}
 	cidr := "10.0.0.0/24,2001:db8::/64"
 	gw := "10.0.0.1,2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 
 	// test valid empty exclude ips
 	dualExcludeIps = []string{}
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 
 	// test invalid empty gw
 	gw = ""
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.Error(t, err)
 
 	// test invalid empty cidr
 	cidr = ""
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.Error(t, err)
 	// test invalid v4 cidr
 	cidr = "10.0.0./24,2001:db8::/64"
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.Error(t, err)
 	// test invalid v6 cidr
 	cidr = "10.0.0./24,2001:db8::/64"
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.Error(t, err)
 }
 
@@ -733,7 +733,7 @@ func TestIPAMAddOrUpdateIPPool(t *testing.T) {
 	v4SubnetName := "v4Subnet"
 	ipv4CIDR := "10.0.0.0/24"
 	v4Gw := "10.0.0.1"
-	err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	// create v4 pool in exist subnet
 	v4PoolName := "v4Pool"
@@ -754,7 +754,7 @@ func TestIPAMAddOrUpdateIPPool(t *testing.T) {
 	v6SubnetName := "v6Subnet"
 	ipv6CIDR := "2001:db8::/64"
 	v6Gw := "2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 	// create v6 pool in exist subnet
 	v6PoolName := "v6Pool"
@@ -776,7 +776,7 @@ func TestIPAMAddOrUpdateIPPool(t *testing.T) {
 	}
 	cidr := "10.0.0.0/24,2001:db8::/64"
 	gw := "10.0.0.1,2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 	dualPoolName := "dualPool"
 	dualPoolIPs := []string{"10.0.0.21", "10.0.0.41", "2001:db8::21", "2001:db8::41"}
@@ -801,7 +801,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	v4SubnetName := "v4Subnet"
 	ipv4CIDR := "10.0.0.0/24"
 	v4Gw := "10.0.0.1"
-	err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	// allocate random ip from subnet
 	ipv4, _, _, err := ipam.GetRandomAddress(podName, nicName, nil, v4SubnetName, "", nil, true)
@@ -815,7 +815,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	require.Equal(t, 0, ipam.Subnets[v4SubnetName].IPPools[v4PoolName].V4Free.Len())
 	// update subnet
 	v4ExcludeIps = append(v4ExcludeIps, "10.0.0.250")
-	err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	require.Equal(t, ipv4, ipam.Subnets[v4SubnetName].IPPools[v4PoolName].V4Using.String())
 	require.Equal(t, 0, ipam.Subnets[v4SubnetName].IPPools[v4PoolName].V4Free.Len())
@@ -828,7 +828,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	v6SubnetName := "v6Subnet"
 	ipv6CIDR := "2001:db8::/64"
 	v6Gw := "2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 	// allocate random ip from subnet
 	_, ipv6, _, err := ipam.GetRandomAddress(podName, nicName, nil, v6SubnetName, "", nil, true)
@@ -842,7 +842,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	require.Equal(t, 0, ipam.Subnets[v6SubnetName].IPPools[v6PoolName].V6Free.Len())
 	// update subnet
 	v6ExcludeIps = append(v6ExcludeIps, "2001:db8::250")
-	err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(v6SubnetName, ipv6CIDR, v6Gw, v6ExcludeIps)
 	require.NoError(t, err)
 	require.Equal(t, ipv6, ipam.Subnets[v6SubnetName].IPPools[v6PoolName].V6Using.String())
 	require.Equal(t, 0, ipam.Subnets[v6SubnetName].IPPools[v6PoolName].V6Free.Len())
@@ -857,7 +857,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	}
 	cidr := "10.0.0.0/24,2001:db8::/64"
 	gw := "10.0.0.1,2001:db8::1"
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 	// allocate random ip from subnet
 	ipv4, ipv6, _, err = ipam.GetRandomAddress(podName, nicName, nil, dualSubnetName, "", nil, true)
@@ -873,7 +873,7 @@ func TestIPAMAddOrUpdateSubnetWithIPPools(t *testing.T) {
 	require.Equal(t, 0, ipam.Subnets[v6SubnetName].IPPools[v6PoolName].V6Free.Len())
 	// update subnet
 	dualExcludeIps = append(dualExcludeIps, "10.0.0.250", "2001:db8::250")
-	err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err = ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 	require.Equal(t, ipv4, ipam.Subnets[v4SubnetName].IPPools[v4PoolName].V4Using.String())
 	require.Equal(t, ipv6, ipam.Subnets[v6SubnetName].IPPools[v6PoolName].V6Using.String())
@@ -893,7 +893,7 @@ func TestIPAMRemoveIPPool(t *testing.T) {
 	}
 	cidr := "10.0.0.0/24,2001:db8::/64"
 	gw := "10.0.0.1,2001:db8::1"
-	err := ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 	dualPoolName := "dualPool"
 	dualPoolIPs := []string{"10.0.0.21", "10.0.0.41", "2001:db8::21", "2001:db8::41"}
@@ -926,7 +926,7 @@ func TestIPAMIPPoolStatistics(t *testing.T) {
 	}
 	cidr := "10.0.0.0/24,2001:db8::/64"
 	gw := "10.0.0.1,2001:db8::1"
-	err := ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(dualSubnetName, cidr, gw, dualExcludeIps)
 	require.NoError(t, err)
 	dualPoolName := "dualPool"
 	dualPoolIPs := []string{"10.0.0.21", "10.0.0.41", "2001:db8::21", "2001:db8::41"}
@@ -978,7 +978,7 @@ func TestGetSubnetV4Mask(t *testing.T) {
 	ipv4CIDR := "10.0.0.0/24"
 	v4Gw := "10.0.0.1"
 	v4SubnetMask := "24"
-	err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
+	_, err := ipam.AddOrUpdateSubnet(v4SubnetName, ipv4CIDR, v4Gw, v4ExcludeIps)
 	require.NoError(t, err)
 	mask, err := ipam.GetSubnetV4Mask(v4SubnetName)
 	require.NoError(t, err)
@@ -989,4 +989,81 @@ func TestGetSubnetV4Mask(t *testing.T) {
 	mask, err = ipam.GetSubnetV4Mask(nonExistSubnetName)
 	require.Equal(t, err, ErrNoAvailable)
 	require.Empty(t, mask)
+}
+
+// TestAddOrUpdateSubnetReIPCandidates exercises the live-re-IP candidate
+// reporting introduced in the subnet-live-reip patch. When a CIDR change makes
+// existing pod IPs out-of-range, AddOrUpdateSubnet must surface the affected
+// (nic, pod, oldV4, oldV6) tuples so the controller can re-IP them in place.
+func TestAddOrUpdateSubnetReIPCandidates(t *testing.T) {
+	t.Run("v4 only", func(t *testing.T) {
+		ipam := NewIPAM()
+		_, err := ipam.AddOrUpdateSubnet("s", "10.0.0.0/24", "10.0.0.1", nil)
+		require.NoError(t, err)
+		_, _, _, err = ipam.GetStaticAddress("p1.ns", "p1nic", "10.0.0.5", nil, "s", true)
+		require.NoError(t, err)
+
+		cands, err := ipam.AddOrUpdateSubnet("s", "10.1.0.0/24", "10.1.0.1", nil)
+		require.NoError(t, err)
+		require.Len(t, cands, 1)
+		require.Equal(t, "p1nic", cands[0].NicName)
+		require.Equal(t, "p1.ns", cands[0].PodKey)
+		require.Equal(t, "10.0.0.5", cands[0].OldV4)
+		require.Empty(t, cands[0].OldV6)
+	})
+
+	t.Run("v6 only", func(t *testing.T) {
+		ipam := NewIPAM()
+		_, err := ipam.AddOrUpdateSubnet("s6", "fd00::/120", "fd00::1", nil)
+		require.NoError(t, err)
+		_, _, _, err = ipam.GetStaticAddress("p1.ns", "p1nic", "fd00::5", nil, "s6", true)
+		require.NoError(t, err)
+
+		cands, err := ipam.AddOrUpdateSubnet("s6", "fd01::/120", "fd01::1", nil)
+		require.NoError(t, err)
+		require.Len(t, cands, 1)
+		require.Equal(t, "fd00::5", cands[0].OldV6)
+		require.Empty(t, cands[0].OldV4)
+	})
+
+	t.Run("dual stack v4 only changes", func(t *testing.T) {
+		ipam := NewIPAM()
+		_, err := ipam.AddOrUpdateSubnet("d", "10.0.0.0/24,fd00::/120", "10.0.0.1,fd00::1", nil)
+		require.NoError(t, err)
+		_, _, _, err = ipam.GetStaticAddress("p1.ns", "p1nic", "10.0.0.5,fd00::5", nil, "d", true)
+		require.NoError(t, err)
+
+		// Move v4 only; v6 stays.
+		cands, err := ipam.AddOrUpdateSubnet("d", "10.1.0.0/24,fd00::/120", "10.1.0.1,fd00::1", nil)
+		require.NoError(t, err)
+		require.Len(t, cands, 1)
+		require.Equal(t, "10.0.0.5", cands[0].OldV4)
+		require.Empty(t, cands[0].OldV6)
+	})
+
+	t.Run("dual stack both change merges to one candidate", func(t *testing.T) {
+		ipam := NewIPAM()
+		_, err := ipam.AddOrUpdateSubnet("d", "10.0.0.0/24,fd00::/120", "10.0.0.1,fd00::1", nil)
+		require.NoError(t, err)
+		_, _, _, err = ipam.GetStaticAddress("p1.ns", "p1nic", "10.0.0.5,fd00::5", nil, "d", true)
+		require.NoError(t, err)
+
+		cands, err := ipam.AddOrUpdateSubnet("d", "10.1.0.0/24,fd01::/120", "10.1.0.1,fd01::1", nil)
+		require.NoError(t, err)
+		require.Len(t, cands, 1)
+		require.Equal(t, "10.0.0.5", cands[0].OldV4)
+		require.Equal(t, "fd00::5", cands[0].OldV6)
+		require.NotEmpty(t, cands[0].Mac)
+	})
+
+	t.Run("no candidates when cidr unchanged", func(t *testing.T) {
+		ipam := NewIPAM()
+		_, err := ipam.AddOrUpdateSubnet("s", "10.0.0.0/24", "10.0.0.1", nil)
+		require.NoError(t, err)
+		_, _, _, err = ipam.GetStaticAddress("p1.ns", "p1nic", "10.0.0.5", nil, "s", true)
+		require.NoError(t, err)
+		cands, err := ipam.AddOrUpdateSubnet("s", "10.0.0.0/24", "10.0.0.1", nil)
+		require.NoError(t, err)
+		require.Empty(t, cands)
+	})
 }
