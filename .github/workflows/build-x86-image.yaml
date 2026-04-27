@@ -2,7 +2,7 @@ name: Build x86 Image
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 on:
   pull_request:
@@ -39,7 +39,7 @@ env:
 jobs:
   build-kube-ovn-base:
     name: Build kube-ovn-base
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     outputs:
       build-base: ${{ steps.check.outputs.build-base }}
     steps:
@@ -106,7 +106,7 @@ jobs:
 
   build-kube-ovn-dpdk-base:
     name: Build kube-ovn-dpdk-base
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     outputs:
       build-dpdk-base: ${{ steps.check.outputs.build-dpdk-base }}
     steps:
@@ -153,7 +153,7 @@ jobs:
 
   build-kube-ovn:
     name: Build kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     needs:
       - build-kube-ovn-base
       - build-kube-ovn-dpdk-base
@@ -341,7 +341,7 @@ jobs:
 
   build-vpc-nat-gateway:
     name: Build vpc-nat-gateway
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
@@ -368,7 +368,7 @@ jobs:
 
   build-e2e-binaries:
     name: Build E2E Binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -446,7 +446,7 @@ jobs:
   netpol-path-filter:
     name: Network Policy Path Filter
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     outputs:
       test-netpol: ${{ steps.filter.outputs.kube-ovn-controller }}
     steps:
@@ -483,7 +483,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -577,11 +577,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -684,7 +682,7 @@ jobs:
       - build-kube-ovn
       - build-e2e-binaries
       - netpol-path-filter
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 90
     strategy:
       fail-fast: false
@@ -780,11 +778,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -882,7 +878,7 @@ jobs:
     needs:
       - build-kube-ovn
       - netpol-path-filter
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -950,11 +946,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         env:
@@ -1051,7 +1045,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -1140,11 +1134,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -1250,7 +1242,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     strategy:
       fail-fast: false
       matrix:
@@ -1328,9 +1320,7 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind clusters
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
           make kind-init-ovn-ic-${{ matrix.ip-family }}
 
@@ -1409,7 +1399,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1487,11 +1477,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -1558,7 +1546,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1644,11 +1632,9 @@ jobs:
           docker load --input vpc-nat-gateway.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Load vpc-nat-gateway image into kind cluster
         run: make kind-load-image-vpc-nat-gateway
@@ -1715,7 +1701,7 @@ jobs:
   chart-test:
     name: Chart Installation/Uninstallation Test
     needs: build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     strategy:
       fail-fast: false
       matrix:
@@ -1751,11 +1737,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -1787,7 +1771,7 @@ jobs:
   underlay-logical-gateway-installation-test:
     name: Underlay Logical Gateway Installation Test
     needs: build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -1817,11 +1801,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-dual
+          make kind-init-dual
 
       - name: Install Kube-OVN
         id: install
@@ -1851,7 +1833,7 @@ jobs:
   no-ovn-lb-test:
     name: Disable OVN LB Test
     needs: build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -1881,11 +1863,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN without LoadBalancer
         id: install
@@ -1917,7 +1897,7 @@ jobs:
   no-np-test:
     name: Disable Network Policy Test
     needs: build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -1947,11 +1927,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -1986,7 +1964,7 @@ jobs:
       - build-kube-ovn
       - build-vpc-nat-gateway
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -2064,11 +2042,9 @@ jobs:
           docker load -i vpc-nat-gateway.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Multus and Kube-OVN
         id: install
@@ -2131,7 +2107,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 10
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -2203,11 +2179,9 @@ jobs:
           docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN with webhook
         id: install
@@ -2242,7 +2216,7 @@ jobs:
   installation-compatibility-test:
     name: Installation Compatibility Test
     needs: build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -2278,11 +2252,10 @@ jobs:
 
       - name: Create kind cluster
         env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           K8S_VERSION: ${{ matrix.k8s-version }}
         run: |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -2312,7 +2285,7 @@ jobs:
   talos-installation-test:
     name: Talos Installation Test
     needs: build-kube-ovn
-    runs-on: larger-runner
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2401,7 +2374,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2485,11 +2458,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Clone DNSNameResolver repository
         run: |
@@ -2549,7 +2520,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2633,11 +2604,9 @@ jobs:
           fi
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Clone DNSNameResolver repository
         run: |
@@ -2697,7 +2666,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2790,11 +2759,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-cilium-chaining-${{ matrix.ip-family }}
+          make kind-init-cilium-chaining-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN with Cilium chaining
         id: install
@@ -2863,7 +2830,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -2947,11 +2914,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-ha-${{ matrix.ip-family }}
+          make kind-init-ha-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -2991,7 +2956,7 @@ jobs:
     name: Kube-OVN Submariner Conformance E2E
     needs:
       - build-kube-ovn
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 60
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -3047,11 +3012,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-ovn-submariner
+          make kind-init-ovn-submariner
 
       - name: Install Kube-OVN and Submariner
         id: install
@@ -3089,7 +3052,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -3167,11 +3130,9 @@ jobs:
         run: docker load --input kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          n_worker=2 make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          n_worker=2 make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -3274,7 +3235,7 @@ jobs:
       - build-kube-ovn
       - build-vpc-nat-gateway
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 45
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -3352,11 +3313,9 @@ jobs:
           docker load -i vpc-nat-gateway.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN with VPC NAT gateway enabled
         id: install
@@ -3419,7 +3378,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -3490,11 +3449,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -3564,7 +3521,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -3635,11 +3592,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -3704,7 +3659,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
@@ -3775,11 +3730,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -3842,7 +3795,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -3919,11 +3872,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init
+          make kind-init
 
       - name: Install Kube-OVN
         id: install
@@ -3955,7 +3906,7 @@ jobs:
     needs:
       - build-kube-ovn
       - build-e2e-binaries
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -4033,11 +3984,9 @@ jobs:
         run: docker load -i kube-ovn.tar
 
       - name: Create kind cluster
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+         |
           pipx install jinjanator
-          make kind-ghcr-pull kind-init-${{ matrix.ip-family }}
+          make kind-init-${{ matrix.ip-family }}
 
       - name: Install Kube-OVN
         id: install
@@ -4124,7 +4073,7 @@ jobs:
       - kube-ovn-ha-e2e
       - kube-ovn-submariner-conformance-e2e
     if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-24.04
+    runs-on: tangerine-docker
     steps:
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
@@ -4176,24 +4125,24 @@ jobs:
       - name: Push
         if: github.ref_name == github.event.repository.default_branch || startsWith(github.ref_name, 'release-')
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           COMMIT: ${{ github.sha }}
         run: |
           cat VERSION
           TAG=$(cat VERSION)
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          docker tag kubeovn/kube-ovn:$TAG kubeovn/kube-ovn-dev:$COMMIT-x86
-          docker tag kubeovn/kube-ovn:$TAG kubeovn/kube-ovn:$TAG-x86
-          docker tag kubeovn/kube-ovn:$TAG-debug kubeovn/kube-ovn:$TAG-debug-x86
-          docker tag kubeovn/kube-ovn:$TAG-dpdk kubeovn/kube-ovn:$TAG-dpdk-x86
-          docker tag kubeovn/vpc-nat-gateway:$TAG kubeovn/vpc-nat-gateway-dev:$COMMIT-x86
-          docker tag kubeovn/vpc-nat-gateway:$TAG kubeovn/vpc-nat-gateway:$TAG-x86
+          REGISTRY=ghcr.io/bupkis-industries
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag kubeovn/kube-ovn:$TAG $REGISTRY/kube-ovn:$TAG-x86
+          docker tag kubeovn/kube-ovn:$TAG $REGISTRY/kube-ovn:$TAG-amd64-legacy
+          docker tag kubeovn/kube-ovn:$TAG $REGISTRY/kube-ovn-dev:$COMMIT-x86
+          docker tag kubeovn/kube-ovn:$TAG-debug $REGISTRY/kube-ovn:$TAG-debug-x86
+          docker tag kubeovn/kube-ovn:$TAG-dpdk $REGISTRY/kube-ovn:$TAG-dpdk-x86
+          docker tag kubeovn/vpc-nat-gateway:$TAG $REGISTRY/vpc-nat-gateway:$TAG-x86
+          docker tag kubeovn/vpc-nat-gateway:$TAG $REGISTRY/vpc-nat-gateway-dev:$COMMIT-x86
           docker images
-          docker push kubeovn/kube-ovn:$TAG-x86
-          docker push kubeovn/kube-ovn:$TAG-amd64-legacy
-          docker push kubeovn/kube-ovn-dev:$COMMIT-x86
-          docker push kubeovn/kube-ovn:$TAG-debug-x86
-          docker push kubeovn/kube-ovn:$TAG-dpdk-x86
-          docker push kubeovn/vpc-nat-gateway:$TAG-x86
-          docker push kubeovn/vpc-nat-gateway-dev:$COMMIT-x86
+          docker push $REGISTRY/kube-ovn:$TAG-x86
+          docker push $REGISTRY/kube-ovn:$TAG-amd64-legacy
+          docker push $REGISTRY/kube-ovn-dev:$COMMIT-x86
+          docker push $REGISTRY/kube-ovn:$TAG-debug-x86
+          docker push $REGISTRY/kube-ovn:$TAG-dpdk-x86
+          docker push $REGISTRY/vpc-nat-gateway:$TAG-x86
+          docker push $REGISTRY/vpc-nat-gateway-dev:$COMMIT-x86
