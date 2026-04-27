@@ -37,18 +37,18 @@ log() { echo "==> $*"; }
 # ---------- login ----------
 if [[ $SKIP_PUSH -eq 0 ]]; then
   log "Logging in to Docker Hub as avionixg"
-  docker login -u avionixg
-  helm registry login registry-1.docker.io -u avionixg
+  # docker login -u avionixg
+  # helm registry login registry-1.docker.io -u avionixg
 fi
 
 # ---------- build ----------
 if [[ $SKIP_BUILD -eq 0 ]]; then
   log "Building amd64 images (tag $TAG)"
-  REGISTRY=$REGISTRY make release
+  make release REGISTRY=$REGISTRY
 
   if [[ $SKIP_ARM -eq 0 ]]; then
     log "Building arm64 images (tag $TAG)"
-    REGISTRY=$REGISTRY make release-arm
+    make release-arm REGISTRY=$REGISTRY
   fi
 fi
 
