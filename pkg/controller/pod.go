@@ -1697,6 +1697,13 @@ func needAllocateSubnets(pod *v1.Pod, nets []*kubeovnNet) []*kubeovnNet {
 		return nets
 	}
 
+	// External actors can defer kube-ovn IP allocation by setting
+	// ovn.kubernetes.io/defer-allocation on the Pod. See util.DeferAllocationAnnotation.
+	if reason, deferred := pod.Annotations[util.DeferAllocationAnnotation]; deferred {
+		klog.V(3).Infof("deferring allocation for pod %s/%s: %s", pod.Namespace, pod.Name, reason)
+		return nil
+	}
+
 	migrate := false
 	if job, ok := pod.Annotations[kubevirtv1.MigrationJobNameAnnotation]; ok {
 		klog.Infof("pod %s/%s is in the migration job %s", pod.Namespace, pod.Name, job)

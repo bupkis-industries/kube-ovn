@@ -943,3 +943,77 @@ func TestHasAliveSiblingVMPod(t *testing.T) {
 		})
 	}
 }
+
+func TestNeedAllocateSubnets_DeferAllocation(t *testing.T) {
+	provider := "ovn"
+	nets := []*kubeovnNet{{ProviderName: provider}}
+	allocatedKey := fmt.Sprintf(util.AllocatedAnnotationTemplate, provider)
+
+	alivePod := func(annotations map[string]string) *corev1.Pod {
+		return &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "p",
+				Namespace:   "default",
+				Annotations: annotations,
+			},
+			Spec: corev1.PodSpec{NodeName: "node1"},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		pod     *corev1.Pod
+		wantLen int
+		wantNil bool
+	}{
+		{
+			name:    "no annotations returns nets",
+			pod:     alivePod(nil),
+			wantLen: 1,
+		},
+		{
+			name:    "defer-allocation present with reason returns nil",
+			pod:     alivePod(map[string]string{util.DeferAllocationAnnotation: "any-reason"}),
+			wantNil: true,
+		},
+		{
+			name:    "defer-allocation present with empty value still defers (presence-based)",
+			pod:     alivePod(map[string]string{util.DeferAllocationAnnotation: ""}),
+			wantNil: true,
+		},
+		{
+			name:    "no defer + already allocated returns empty slice",
+			pod:     alivePod(map[string]string{allocatedKey: "true"}),
+			wantLen: 0,
+		},
+		{
+			name:    "no defer + not allocated returns nets",
+			pod:     alivePod(map[string]string{allocatedKey: "false"}),
+			wantLen: 1,
+		},
+		{
+			name: "terminating pod short-circuits even with defer set",
+			pod: func() *corev1.Pod {
+				p := alivePod(map[string]string{util.DeferAllocationAnnotation: "x"})
+				now := metav1.Now()
+				p.DeletionTimestamp = &now
+				return p
+			}(),
+			wantNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := needAllocateSubnets(tt.pod, nets)
+			if tt.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			assert.Len(t, got, tt.wantLen)
+		})
+	}
+}

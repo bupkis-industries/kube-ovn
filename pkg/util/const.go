@@ -26,7 +26,23 @@ const (
 	// NeedsReIPEvictionAnnotation is set on a pod whose IP fell outside its
 	// subnet's new cidrBlock and whose subnet has allowLiveReIP=false. The
 	// pod retains its stale IP and is unreachable until evicted/recreated.
-	NeedsReIPEvictionAnnotation  = "ovn.kubernetes.io/needs-reip-eviction"
+	NeedsReIPEvictionAnnotation = "ovn.kubernetes.io/needs-reip-eviction"
+	// DeferAllocationAnnotation, when present on a Pod, tells kube-ovn-controller
+	// to skip IP allocation for that Pod. The annotation's value is treated as an
+	// opaque diagnostic reason. The expected workflow is:
+	//
+	//   1. An external actor (admission webhook, controller, GitOps tool) sets the
+	//      annotation on a Pod that is not yet ready for kube-ovn IPAM.
+	//   2. kube-ovn-controller observes the annotation and skips allocation.
+	//   3. When the external actor finishes its preparation (e.g. sets
+	//      ovn.kubernetes.io/logical_switch on a per-node-Subnet workload), it
+	//      removes the annotation.
+	//   4. The Pod-update event re-enqueues the Pod and allocation proceeds.
+	//
+	// The CNI daemon's existing wait-for-allocation poll (~20s) absorbs the
+	// deferral window. If the annotation is never removed, CNI ADD fails with
+	// the same timeout that misconfigured Subnets already produce.
+	DeferAllocationAnnotation    = "ovn.kubernetes.io/defer-allocation"
 	IPPoolAnnotation             = "ovn.kubernetes.io/ip_pool"
 	BgpAnnotation                = "ovn.kubernetes.io/bgp"
 	SnatAnnotation               = "ovn.kubernetes.io/snat"
